@@ -6,7 +6,7 @@ import { Client, ClientChannel } from 'ssh2';
 import { z } from 'zod';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-// Example usage: node build/index.js --host=1.2.3.4 --port=22 --user=root --password=pass --key=path/to/key --timeout=5000 --disableSudo
+// Example usage: node build/index.js --host=1.2.3.4 --port=22 --user=root --password=pass --key=path/to/key --key-passphrase=passphrase --timeout=5000 --disableSudo
 function parseArgv() {
   const args = process.argv.slice(2);
   const config: Record<string, string | null> = {};
@@ -36,6 +36,7 @@ const SUPASSWORD = argvConfig.suPassword;
 const SUDOPASSWORD = argvConfig.sudoPassword;
 const DISABLE_SUDO = argvConfig.disableSudo !== undefined;
 const KEY = argvConfig.key;
+const KEY_PASSPHRASE = argvConfig.keyPassphrase;
 const DEFAULT_TIMEOUT = argvConfig.timeout ? parseInt(argvConfig.timeout) : 60000; // 60 seconds default timeout
 // Max characters configuration:
 // - Default: 1000 characters
@@ -112,6 +113,7 @@ export interface SSHConfig {
   username: string;
   password?: string;
   privateKey?: string;
+  passphrase?: string;  // Passphrase for encrypted private key
   suPassword?: string;
   sudoPassword?: string;  // Password for sudo commands specifically (if different from suPassword)
 }
@@ -341,6 +343,9 @@ server.tool(
         } else if (KEY) {
           const fs = await import('fs/promises');
           sshConfig.privateKey = await fs.readFile(KEY, 'utf8');
+          if (KEY_PASSPHRASE !== null && KEY_PASSPHRASE !== undefined) {
+            sshConfig.passphrase = sanitizePassword(KEY_PASSPHRASE);
+          }
         }
         
         if (SUPASSWORD !== null && SUPASSWORD !== undefined) {
@@ -389,6 +394,9 @@ if (!DISABLE_SUDO) {
           } else if (KEY) {
             const fs = await import('fs/promises');
             sshConfig.privateKey = await fs.readFile(KEY, 'utf8');
+            if (KEY_PASSPHRASE !== null && KEY_PASSPHRASE !== undefined) {
+              sshConfig.passphrase = sanitizePassword(KEY_PASSPHRASE);
+            }
           }
           if (SUPASSWORD !== null && SUPASSWORD !== undefined) {
             sshConfig.suPassword = sanitizePassword(SUPASSWORD);

@@ -87,6 +87,7 @@ You can configure your IDE or LLM like Cursor, Windsurf, Claude Desktop to use t
 - `port`: SSH port (default: 22)
 - `password`: SSH password (or use `key` for key-based auth)
 - `key`: Path to private SSH key
+- `keyPassphrase`: Passphrase for encrypted private SSH key
 - `sudoPassword`: Password for sudo elevation (when executing commands with sudo)
 - `suPassword`: Password for su elevation (when you need a persistent root shell)
 - `timeout`: Command execution timeout in milliseconds (default: 60000ms = 1 minute)
@@ -136,6 +137,11 @@ claude mcp add --transport stdio ssh-mcp -- npx -y ssh-mcp -- --host=192.168.1.1
 **With SSH Key Authentication:**
 ```bash
 claude mcp add --transport stdio ssh-mcp -- npx -y ssh-mcp -- --host=example.com --user=root --key=/path/to/private/key
+```
+
+**With Passphrase-Protected SSH Key Authentication:**
+```bash
+claude mcp add --transport stdio ssh-mcp -- npx -y ssh-mcp -- --host=example.com --user=root --key=/path/to/private/key --keyPassphrase=your_passphrase
 ```
 
 **With Custom Timeout and No Character Limit:**
