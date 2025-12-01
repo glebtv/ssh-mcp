@@ -10,12 +10,21 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 function parseArgv() {
   const args = process.argv.slice(2);
   const config: Record<string, string | null> = {};
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg.startsWith('--')) {
       const equalIndex = arg.indexOf('=');
       if (equalIndex === -1) {
-        // Flag without value
-        config[arg.slice(2)] = null;
+        // Flag without value or space-separated value
+        const key = arg.slice(2);
+        // Check if next arg exists and doesn't start with --
+        if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
+          config[key] = args[i + 1];
+          i++; // Skip next arg as it's the value
+        } else {
+          // Flag without value
+          config[key] = null;
+        }
       } else {
         // Key=value pair
         config[arg.slice(2, equalIndex)] = arg.slice(equalIndex + 1);
@@ -36,7 +45,7 @@ const SUPASSWORD = argvConfig.suPassword;
 const SUDOPASSWORD = argvConfig.sudoPassword;
 const DISABLE_SUDO = argvConfig.disableSudo !== undefined;
 const KEY = argvConfig.key;
-const KEY_PASSPHRASE = argvConfig.keyPassphrase;
+const KEY_PASSPHRASE = argvConfig['key-passphrase'];
 const DEFAULT_TIMEOUT = argvConfig.timeout ? parseInt(argvConfig.timeout) : 60000; // 60 seconds default timeout
 // Max characters configuration:
 // - Default: 1000 characters
@@ -99,6 +108,7 @@ function sanitizePassword(password: string | undefined): string | undefined {
   if (password.length === 0) return undefined;
   return password;
 }
+
 
 // Escape command for use in shell contexts (like pkill)
 export function escapeCommandForShell(command: string): string {
@@ -343,8 +353,8 @@ server.tool(
         } else if (KEY) {
           const fs = await import('fs/promises');
           sshConfig.privateKey = await fs.readFile(KEY, 'utf8');
-          if (KEY_PASSPHRASE !== null && KEY_PASSPHRASE !== undefined) {
-            sshConfig.passphrase = sanitizePassword(KEY_PASSPHRASE);
+          if (KEY_PASSPHRASE !== null && KEY_PASSPHRASE !== undefined && KEY_PASSPHRASE.length > 0) {
+            sshConfig.passphrase = KEY_PASSPHRASE;
           }
         }
         
@@ -394,8 +404,8 @@ if (!DISABLE_SUDO) {
           } else if (KEY) {
             const fs = await import('fs/promises');
             sshConfig.privateKey = await fs.readFile(KEY, 'utf8');
-            if (KEY_PASSPHRASE !== null && KEY_PASSPHRASE !== undefined) {
-              sshConfig.passphrase = sanitizePassword(KEY_PASSPHRASE);
+            if (KEY_PASSPHRASE !== null && KEY_PASSPHRASE !== undefined && KEY_PASSPHRASE.length > 0) {
+              sshConfig.passphrase = KEY_PASSPHRASE;
             }
           }
           if (SUPASSWORD !== null && SUPASSWORD !== undefined) {
